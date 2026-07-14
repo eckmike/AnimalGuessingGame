@@ -3,10 +3,12 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#D97A3F">
 <title>Animal Guessing Game</title>
 <meta name="description" content="Guess the secret animal in 5 questions or fewer! Ask about diet, sound, habitat, and more across 200 animals, then see how many stars you can earn." />
 <link rel="canonical" href="https://eckmike.github.io/AnimalGuessingGame/" />
 <meta property="og:type" content="website" />
+<meta property="og:site_name" content="Animal Guessing Game" />
 <meta property="og:url" content="https://eckmike.github.io/AnimalGuessingGame/" />
 <meta property="og:title" content="Animal Guessing Game" />
 <meta property="og:description" content="Guess the secret animal in 5 questions or fewer! Ask about diet, sound, habitat, and more across 200 animals, then see how many stars you can earn." />
@@ -101,6 +103,43 @@
     box-shadow: var(--shadow);
   }
   .btn-new:active { transform: translateY(1px); }
+  .btn-secondary {
+    background: transparent;
+    color: var(--accent);
+    border: 2px solid var(--accent);
+    border-radius: 999px;
+    padding: 8px 18px;
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
+  .btn-secondary:active { transform: translateY(1px); }
+  .result-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 6px;
+  }
+  .share-feedback {
+    min-height: 1.2em;
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: var(--good);
+    font-weight: 600;
+  }
+  .share-feedback textarea {
+    width: 100%;
+    margin-top: 4px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 400;
+    resize: none;
+  }
 
   .card {
     background: var(--card);
@@ -276,7 +315,11 @@
     <h2 id="resultTitle"></h2>
     <div id="resultDetail"></div>
     <div class="stars" id="resultStars"></div>
-    <button class="btn-new" id="playAgainBtn">Play Again</button>
+    <div class="result-actions">
+      <button class="btn-new" id="playAgainBtn">Play Again</button>
+      <button class="btn-secondary" id="shareBtn">🔗 Share Result</button>
+    </div>
+    <div class="share-feedback" id="shareFeedback"></div>
   </div>
 </div>
 
@@ -2506,6 +2549,7 @@
   let askedKeys = new Set();
   let guessesMade = 0;
   let gameOver = false;
+  let lastWon = null;
 
   // --- elements ---
   const questionsGrid = document.getElementById('questionsGrid');
@@ -2523,6 +2567,9 @@
   const resultStars = document.getElementById('resultStars');
   const newGameBtn = document.getElementById('newGameBtn');
   const playAgainBtn = document.getElementById('playAgainBtn');
+  const shareBtn = document.getElementById('shareBtn');
+  const shareFeedback = document.getElementById('shareFeedback');
+  const SITE_URL = 'https://eckmike.github.io/AnimalGuessingGame/';
 
   function levenshtein(a, b) {
     const m = a.length, n = b.length;
@@ -2640,11 +2687,82 @@
     return '★'.repeat(earned) + '☆'.repeat(total - earned);
   }
 
+  function buildShareText(won) {
+    const lines = ['🐾 Animal Guessing Game'];
+    if (won) {
+      lines.push(`I guessed the ${secret.emoji} ${secret.name} in ${askedCount} question${askedCount === 1 ? '' : 's'}! ${starsFor(askedCount)}`);
+    } else {
+      lines.push(`I couldn't guess the ${secret.emoji} ${secret.name} in ${MAX_QUESTIONS} questions... 😅`);
+    }
+    lines.push('Can you beat me?');
+    lines.push(SITE_URL);
+    return lines.join('\n');
+  }
+
+  function legacyCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (err) { ok = false; }
+    document.body.removeChild(ta);
+    return ok;
+  }
+
+  function showManualCopy(text) {
+    shareFeedback.innerHTML = '';
+    const label = document.createElement('div');
+    label.textContent = "Couldn't auto-copy — select and copy manually:";
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.readOnly = true;
+    ta.rows = 4;
+    shareFeedback.appendChild(label);
+    shareFeedback.appendChild(ta);
+    ta.focus();
+    ta.select();
+  }
+
+  async function shareResult(won) {
+    const text = buildShareText(won);
+    if (navigator.share) {
+      try {
+        await navigator.share({ text });
+        return;
+      } catch (err) {
+        if (err && err.name === 'AbortError') return;
+        // fall through to clipboard copy if native share fails
+      }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        shareFeedback.textContent = 'Copied to clipboard!';
+        setTimeout(() => { shareFeedback.textContent = ''; }, 3000);
+        return;
+      } catch (err) {
+        // fall through to legacy copy
+      }
+    }
+    if (legacyCopy(text)) {
+      shareFeedback.textContent = 'Copied to clipboard!';
+      setTimeout(() => { shareFeedback.textContent = ''; }, 3000);
+      return;
+    }
+    showManualCopy(text);
+  }
+
   function endGame(won) {
     gameOver = true;
+    lastWon = won;
     renderQuestions();
     guessCard.classList.add('hidden');
     resultCard.classList.remove('hidden');
+    shareFeedback.textContent = '';
     resultEmoji.textContent = secret.emoji;
     if (won) {
       resultTitle.textContent = `You got it! It was the ${secret.name}.`;
@@ -2690,11 +2808,13 @@
     askedKeys = new Set();
     guessesMade = 0;
     gameOver = false;
+    lastWon = null;
     feedback.textContent = '';
     feedback.className = 'feedback';
     guessInput.value = '';
     guessCard.classList.remove('hidden');
     resultCard.classList.add('hidden');
+    shareFeedback.textContent = '';
     renderQuestions();
     renderLog();
     updateBadge();
@@ -2703,6 +2823,7 @@
 
   newGameBtn.addEventListener('click', newGame);
   playAgainBtn.addEventListener('click', newGame);
+  shareBtn.addEventListener('click', () => shareResult(lastWon));
 
   newGame();
 </script>
