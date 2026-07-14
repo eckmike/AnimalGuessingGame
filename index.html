@@ -1,0 +1,1389 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Guess the Animal</title>
+<style>
+  :root {
+    --bg: #f4f1ea;
+    --card: #ffffff;
+    --ink: #2b2620;
+    --muted: #766f63;
+    --accent: #d97a3f;
+    --accent-ink: #ffffff;
+    --border: #e4ddcf;
+    --good: #4c8b5e;
+    --bad: #c0503f;
+    --shadow: 0 6px 18px rgba(43, 38, 32, 0.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #201d19;
+      --card: #2c2822;
+      --ink: #f2ece1;
+      --muted: #b3a996;
+      --accent: #e79358;
+      --accent-ink: #201d19;
+      --border: #3d372e;
+      --good: #7dbf8e;
+      --bad: #e08373;
+      --shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    padding: 24px 16px 60px;
+  }
+  .wrap {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  header h1 {
+    margin: 0 0 4px;
+    font-size: 2rem;
+  }
+  header p {
+    margin: 0;
+    color: var(--muted);
+  }
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .badge {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-weight: 600;
+    box-shadow: var(--shadow);
+  }
+  button {
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .btn-new {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border: none;
+    border-radius: 999px;
+    padding: 10px 20px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    box-shadow: var(--shadow);
+  }
+  .btn-new:active { transform: translateY(1px); }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px;
+    box-shadow: var(--shadow);
+    margin-bottom: 18px;
+  }
+  .card h2 {
+    margin: 0 0 12px;
+    font-size: 1.05rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .questions-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  @media (max-width: 480px) {
+    .questions-grid { grid-template-columns: 1fr; }
+  }
+  .q-btn {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--ink);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 0.95rem;
+    text-align: left;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .q-btn:hover:not(:disabled) {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+  .q-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .q-btn.asked {
+    opacity: 0.55;
+    border-color: var(--accent);
+  }
+
+  .log {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+  .log-empty {
+    color: var(--muted);
+    font-style: italic;
+  }
+  .log-item {
+    border-left: 3px solid var(--accent);
+    padding: 4px 12px;
+  }
+  .log-item .q {
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+  .log-item .a {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  .guess-form {
+    display: flex;
+    gap: 10px;
+  }
+  .guess-form input {
+    flex: 1;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 1rem;
+  }
+  .guess-form input:focus {
+    outline: 2px solid var(--accent);
+  }
+  .guess-form button {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border: none;
+    border-radius: 10px;
+    padding: 0 20px;
+    font-weight: 700;
+  }
+  .guess-form.final button {
+    background: var(--bad);
+  }
+  .guess-form input:disabled,
+  .guess-form button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .feedback {
+    margin-top: 12px;
+    font-weight: 600;
+    min-height: 1.4em;
+  }
+  .feedback.good { color: var(--good); }
+  .feedback.bad { color: var(--bad); }
+
+  .result {
+    text-align: center;
+  }
+  .result .emoji {
+    font-size: 4rem;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .result h2 {
+    text-transform: none;
+    letter-spacing: normal;
+    font-size: 1.5rem;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .stars {
+    font-size: 1.4rem;
+    letter-spacing: 4px;
+    margin: 8px 0;
+    color: var(--accent);
+  }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🐾 Guess the Animal</h1>
+    <p>Ask up to <span id="maxQLabel">5</span> questions, then make your final guess.</p>
+  </header>
+
+  <div class="topbar">
+    <div class="badge" id="remainingBadge">5 questions left</div>
+    <button class="btn-new" id="newGameBtn">New Game</button>
+  </div>
+
+  <div class="card">
+    <h2>Ask a question</h2>
+    <div class="questions-grid" id="questionsGrid"></div>
+  </div>
+
+  <div class="card">
+    <h2>Clues so far</h2>
+    <div class="log" id="log">
+      <div class="log-empty">No questions asked yet — pick one above to get your first clue.</div>
+    </div>
+  </div>
+
+  <div class="card" id="guessCard">
+    <h2 id="guessHeading">Make a guess</h2>
+    <form class="guess-form" id="guessForm">
+      <input type="text" id="guessInput" placeholder="Type an animal name…" autocomplete="off" />
+      <button type="submit">Guess</button>
+    </form>
+    <div class="feedback" id="feedback"></div>
+  </div>
+
+  <div class="card result hidden" id="resultCard">
+    <div class="emoji" id="resultEmoji"></div>
+    <h2 id="resultTitle"></h2>
+    <div id="resultDetail"></div>
+    <div class="stars" id="resultStars"></div>
+    <button class="btn-new" id="playAgainBtn">Play Again</button>
+  </div>
+</div>
+
+<script>
+  const MAX_QUESTIONS = 5;
+  document.getElementById('maxQLabel').textContent = MAX_QUESTIONS;
+
+  const QUESTIONS = [
+    { key: 'eat',      label: '🍽️ What does it eat?' },
+    { key: 'sound',    label: '🔊 What sound does it make?' },
+    { key: 'habitat',  label: '🏞️ Where does it live?' },
+    { key: 'legs',     label: '🦵 How many legs does it have?' },
+    { key: 'size',     label: '📏 How big is it?' },
+    { key: 'covering', label: '🧥 What covers its body?' },
+    { key: 'movement', label: '🏃 How does it move?' },
+    { key: 'funfact',  label: '✨ Tell me a fun fact' },
+  ];
+
+  const ANIMALS = [
+    { name: 'Elephant', emoji: '🐘',
+      eat: 'Grass, leaves, bark, and fruit — it can eat hundreds of pounds a day.',
+      sound: 'A loud trumpet through its trunk.',
+      habitat: 'Savannas and forests in Africa or Asia.',
+      legs: '4 legs, thick as tree trunks.',
+      size: 'Huge — one of the largest land animals alive.',
+      covering: 'Thick, wrinkly gray skin with sparse hair.',
+      movement: 'Walks on all fours, surprisingly quietly for its size.',
+      funfact: 'Uses its long nose to grab food, drink water, and even give hugs.' },
+    { name: 'Lion', emoji: '🦁',
+      eat: 'Meat — it hunts other animals like zebras and antelope.',
+      sound: 'A deep roar that can be heard miles away.',
+      habitat: 'Grasslands and savannas.',
+      legs: '4 legs.',
+      size: 'Large — about the size of a big dog, but much heavier.',
+      covering: 'Short tan fur; males have a shaggy mane.',
+      movement: 'Walks and sprints on all fours in short bursts.',
+      funfact: 'Lives in a family group called a pride.' },
+    { name: 'Giraffe', emoji: '🦒',
+      eat: 'Leaves, especially from tall acacia trees.',
+      sound: 'Mostly quiet — sometimes hums or grunts softly.',
+      habitat: 'African savannas.',
+      legs: '4 very long legs.',
+      size: 'Huge — the tallest land animal.',
+      covering: 'Short fur with a patchy spotted pattern.',
+      movement: 'Walks with a swaying gait on long legs.',
+      funfact: 'Has the same number of neck bones as a human — just much bigger.' },
+    { name: 'Kangaroo', emoji: '🦘',
+      eat: 'Grasses and plants.',
+      sound: 'Soft clicks, hisses, and grunts.',
+      habitat: 'Open plains and woodlands in Australia.',
+      legs: '4 legs, but it hops on the back two.',
+      size: 'Medium to large.',
+      covering: 'Soft, dense fur.',
+      movement: 'Hops on powerful back legs.',
+      funfact: 'Carries its baby in a pouch on its belly.' },
+    { name: 'Penguin', emoji: '🐧',
+      eat: 'Fish, squid, and krill.',
+      sound: 'Loud honks, brays, or trumpeting calls.',
+      habitat: 'Cold coastlines, mostly in the Southern Hemisphere.',
+      legs: '2 short legs.',
+      size: 'Small to medium, depending on the species.',
+      covering: 'Waterproof feathers, black and white.',
+      movement: 'Waddles on land, swims gracefully underwater.',
+      funfact: "Can't fly, but it 'flies' through water instead." },
+    { name: 'Dolphin', emoji: '🐬',
+      eat: 'Fish and squid.',
+      sound: 'Clicks and whistles used to communicate and navigate.',
+      habitat: 'Oceans and some rivers worldwide.',
+      legs: 'No legs — it has flippers and a tail fin.',
+      size: 'Medium to large.',
+      covering: 'Smooth, rubbery skin.',
+      movement: 'Swims gracefully and often leaps out of the water.',
+      funfact: 'Considered one of the most intelligent animals on Earth.' },
+    { name: 'Owl', emoji: '🦉',
+      eat: 'Small animals like mice, insects, and other birds.',
+      sound: 'A soft hoot.',
+      habitat: 'Forests and open country, almost worldwide.',
+      legs: '2 legs with sharp talons.',
+      size: 'Small to medium.',
+      covering: 'Soft feathers that let it fly silently.',
+      movement: 'Flies silently; can turn its head almost all the way around.',
+      funfact: 'Hunts mostly at night.' },
+    { name: 'Snake', emoji: '🐍',
+      eat: 'Other animals, swallowed whole — from insects to small mammals.',
+      sound: 'A hiss.',
+      habitat: 'Almost everywhere — deserts, forests, water, and grasslands.',
+      legs: 'No legs at all.',
+      size: 'Varies widely, from tiny to very long.',
+      covering: 'Dry scales.',
+      movement: 'Slithers along the ground.',
+      funfact: 'Some species can unhinge their jaw to eat prey bigger than their head.' },
+    { name: 'Octopus', emoji: '🐙',
+      eat: 'Crabs, clams, and small fish.',
+      sound: 'Silent — it has no vocal cords.',
+      habitat: 'Oceans, often near the seafloor.',
+      legs: 'No legs — 8 arms instead.',
+      size: 'Small to large, depending on the species.',
+      covering: 'Soft, squishy skin that can change color.',
+      movement: 'Crawls or jets through water by squirting water.',
+      funfact: 'Has three hearts and blue blood.' },
+    { name: 'Spider', emoji: '🕷️',
+      eat: 'Insects, caught in webs or by hunting.',
+      sound: 'Silent to human ears.',
+      habitat: 'Almost everywhere on land.',
+      legs: '8 legs.',
+      size: 'Tiny to small, though a few are larger.',
+      covering: 'Hard exoskeleton, sometimes with fine hairs.',
+      movement: 'Crawls or scurries; some spin webs to catch food.',
+      funfact: 'Some spin silk strong enough to stop a flying insect instantly.' },
+    { name: 'Bee', emoji: '🐝',
+      eat: 'Nectar and pollen from flowers.',
+      sound: 'A buzz from its fast-beating wings.',
+      habitat: 'Almost anywhere with flowers, often in hives.',
+      legs: '6 legs.',
+      size: 'Tiny.',
+      covering: 'A fuzzy body with a hard exoskeleton.',
+      movement: 'Flies from flower to flower.',
+      funfact: "Communicates food locations to others with a 'waggle dance'." },
+    { name: 'Frog', emoji: '🐸',
+      eat: 'Insects, caught with a quick, sticky tongue.',
+      sound: 'A croak or ribbit.',
+      habitat: 'Near ponds, rivers, and damp forests.',
+      legs: '4 legs, with strong back legs for jumping.',
+      size: 'Small.',
+      covering: 'Smooth, moist skin.',
+      movement: 'Hops and swims.',
+      funfact: 'Can breathe partly through its skin.' },
+    { name: 'Bat', emoji: '🦇',
+      eat: 'Insects or fruit, depending on the species.',
+      sound: 'High-pitched squeaks, many too high for humans to hear.',
+      habitat: 'Caves, trees, and buildings almost worldwide.',
+      legs: '2 legs, plus wings made of skin stretched between long fingers.',
+      size: 'Small to medium.',
+      covering: 'Fur on its body, thin skin on its wings.',
+      movement: 'Flies — the only mammal that truly can.',
+      funfact: 'Many species find food in the dark using echolocation.' },
+    { name: 'Shark', emoji: '🦈',
+      eat: 'Fish, seals, or plankton, depending on the species.',
+      sound: 'Silent — it makes no vocal sounds.',
+      habitat: 'Oceans around the world.',
+      legs: 'No legs — it has fins.',
+      size: 'Medium to enormous, depending on the species.',
+      covering: 'Rough, sandpaper-like skin.',
+      movement: 'Swims constantly, often to keep water flowing over its gills.',
+      funfact: 'Some species can detect a single drop of blood in a huge volume of water.' },
+    { name: 'Crocodile', emoji: '🐊',
+      eat: 'Fish, birds, and other animals that come near the water.',
+      sound: 'A deep growl or hiss, sometimes a bellow.',
+      habitat: 'Rivers, lakes, and wetlands in warm regions.',
+      legs: '4 short, powerful legs.',
+      size: 'Large.',
+      covering: 'Thick, armored scales.',
+      movement: 'Swims with a powerful tail, ambushes prey from the water.',
+      funfact: 'Has been on Earth in roughly its current form since the age of dinosaurs.' },
+    { name: 'Peacock', emoji: '🦚',
+      eat: 'Seeds, insects, and small creatures.',
+      sound: 'A loud, high-pitched call.',
+      habitat: 'Forests and open land, originally from South Asia.',
+      legs: '2 legs.',
+      size: 'Medium, but with a very long tail.',
+      covering: 'Brilliant, iridescent feathers.',
+      movement: 'Walks; can fly short distances despite its huge tail.',
+      funfact: 'Only the males have the famous colorful tail, spread to attract mates.' },
+    { name: 'Koala', emoji: '🐨',
+      eat: 'Eucalyptus leaves, almost exclusively.',
+      sound: 'Surprisingly loud grunts and bellows for its size.',
+      habitat: 'Eucalyptus forests in Australia.',
+      legs: '4 legs with sharp claws for climbing.',
+      size: 'Small to medium.',
+      covering: 'Thick, woolly gray fur.',
+      movement: 'Climbs slowly through trees; sleeps most of the day.',
+      funfact: 'Sleeps up to 20 hours a day.' },
+    { name: 'Camel', emoji: '🐫',
+      eat: 'Tough desert plants and thorny shrubs.',
+      sound: 'Grunts, groans, and occasional loud bellows.',
+      habitat: 'Hot deserts.',
+      legs: '4 long legs.',
+      size: 'Large.',
+      covering: 'Thick fur that insulates against heat and cold.',
+      movement: 'Walks steadily across sand; can run in short bursts.',
+      funfact: 'Stores fat, not water, in its hump.' },
+    { name: 'Hedgehog', emoji: '🦔',
+      eat: 'Insects, worms, and small creatures.',
+      sound: 'Snuffles, grunts, and occasional squeals.',
+      habitat: 'Gardens, grasslands, and woodlands.',
+      legs: '4 short legs.',
+      size: 'Tiny to small.',
+      covering: 'Sharp spines covering its back.',
+      movement: 'Waddles slowly; curls into a ball when scared.',
+      funfact: 'Rolls into a spiky ball to protect itself from predators.' },
+    { name: 'Chameleon', emoji: '🦎',
+      eat: 'Insects, caught with a long, fast tongue.',
+      sound: 'Usually silent, with occasional soft hisses.',
+      habitat: 'Forests and shrubland, mostly in Africa and Madagascar.',
+      legs: '4 legs with gripping, clamp-like feet.',
+      size: 'Small.',
+      covering: 'Bumpy, textured skin.',
+      movement: 'Moves slowly and deliberately along branches.',
+      funfact: 'Can change skin color and move each eye independently.' },
+    { name: 'Tiger', emoji: '🐯',
+      eat: 'Meat — it hunts deer, wild boar, and other large prey.',
+      sound: 'A powerful roar, plus growls and chuffs.',
+      habitat: 'Forests and grasslands across Asia.',
+      legs: '4 legs.',
+      size: 'Large — one of the biggest wild cats.',
+      covering: 'Orange fur with black stripes.',
+      movement: 'Stalks prey silently, then sprints in short bursts.',
+      funfact: "Each individual's stripe pattern is unique, like a fingerprint." },
+    { name: 'Leopard', emoji: '🐆',
+      eat: 'Meat — hunts antelope, monkeys, and other animals.',
+      sound: 'A rasping, saw-like growl.',
+      habitat: 'Forests, grasslands, and mountains across Africa and Asia.',
+      legs: '4 legs.',
+      size: 'Medium to large.',
+      covering: 'Golden fur covered in dark rosette-shaped spots.',
+      movement: 'Climbs trees easily, often dragging prey up with it.',
+      funfact: 'Strong enough to haul prey heavier than itself into a tree.' },
+    { name: 'Cheetah', emoji: '🐆',
+      eat: 'Meat — hunts gazelles and other fast prey.',
+      sound: 'Chirps and purrs, not a roar.',
+      habitat: 'Open grasslands and savannas in Africa.',
+      legs: '4 legs.',
+      size: 'Medium to large, built lean for speed.',
+      covering: 'Tan fur with small round black spots.',
+      movement: 'The fastest land animal — can sprint in short bursts.',
+      funfact: 'Can accelerate faster than most sports cars over a short distance.' },
+    { name: 'Jaguar', emoji: '🐆',
+      eat: 'Meat — hunts capybaras, deer, and even caimans.',
+      sound: 'A deep, guttural grunting roar.',
+      habitat: 'Rainforests and wetlands in the Americas.',
+      legs: '4 legs.',
+      size: 'Large — the biggest cat in the Americas.',
+      covering: 'Golden fur with rosette spots that have small dots inside.',
+      movement: 'Swims well and often hunts near water.',
+      funfact: 'Has one of the strongest bites of any big cat, able to pierce turtle shells.' },
+    { name: 'Wolf', emoji: '🐺',
+      eat: 'Meat — hunts deer, elk, and other animals as a pack.',
+      sound: 'A long, haunting howl.',
+      habitat: 'Forests, tundra, and grasslands across the Northern Hemisphere.',
+      legs: '4 legs.',
+      size: 'Medium to large.',
+      covering: 'Thick fur, often gray, brown, or white.',
+      movement: 'Trots long distances hunting in a coordinated pack.',
+      funfact: 'Lives and hunts in a family group led by a breeding pair.' },
+    { name: 'Fox', emoji: '🦊',
+      eat: 'Small animals, insects, fruit, and whatever it can scavenge.',
+      sound: 'A sharp bark or eerie scream.',
+      habitat: 'Forests, grasslands, and even cities worldwide.',
+      legs: '4 legs.',
+      size: 'Small to medium.',
+      covering: 'Bushy-tailed fur, often reddish.',
+      movement: 'Trots and pounces, especially when hunting in snow or grass.',
+      funfact: 'Known for a clever, adaptable nature that lets it thrive near humans.' },
+    { name: 'Gorilla', emoji: '🦍',
+      eat: 'Mostly leaves, stems, and fruit.',
+      sound: 'Grunts, hoots, and chest-beating drums.',
+      habitat: 'Forests in central Africa.',
+      legs: '4 limbs, usually walks on its knuckles.',
+      size: 'Huge — the largest living primate.',
+      covering: 'Coarse black fur; older males get a silver-gray back.',
+      movement: 'Knuckle-walks on all fours, sometimes stands upright.',
+      funfact: "Despite its size, it's a gentle herbivore living in family groups." },
+    { name: 'Chimpanzee', emoji: '🐒',
+      eat: 'Fruit, leaves, insects, and occasionally meat.',
+      sound: 'Loud hoots, screams, and pant-hoots.',
+      habitat: 'Forests and grasslands in central and West Africa.',
+      legs: '4 limbs, walks on its knuckles.',
+      size: 'Medium — smaller than a human.',
+      covering: 'Coarse black fur.',
+      movement: 'Knuckle-walks, climbs trees, and can walk upright briefly.',
+      funfact: 'Shares about 98% of its DNA with humans.' },
+    { name: 'Orangutan', emoji: '🦧',
+      eat: 'Mostly fruit, along with leaves and bark.',
+      sound: 'A deep, booming long call.',
+      habitat: 'Rainforests of Borneo and Sumatra.',
+      legs: '4 limbs, very long arms.',
+      size: 'Large.',
+      covering: 'Shaggy reddish-orange fur.',
+      movement: 'Swings and climbs through trees, rarely comes to the ground.',
+      funfact: 'Spends nearly its whole life in the trees, even building nests to sleep in.' },
+    { name: 'Monkey', emoji: '🐵',
+      eat: 'Fruit, leaves, insects, and small animals.',
+      sound: 'Chattering calls, screeches, and hoots.',
+      habitat: 'Forests and grasslands across many continents.',
+      legs: '4 limbs, plus a tail in many species.',
+      size: 'Small to medium, depending on species.',
+      covering: 'Fur, in many different colors.',
+      movement: 'Leaps and climbs nimbly through trees.',
+      funfact: 'Many species use their tail almost like an extra hand for gripping branches.' },
+    { name: 'Raccoon', emoji: '🦝',
+      eat: 'Almost anything — fruit, insects, small animals, and human food scraps.',
+      sound: 'Chittering, growls, and hisses.',
+      habitat: 'Forests, and increasingly cities and suburbs.',
+      legs: '4 legs with dexterous front paws.',
+      size: 'Small to medium.',
+      covering: 'Gray fur with a black mask around the eyes and a ringed tail.',
+      movement: 'Climbs well and forages at night on all fours.',
+      funfact: "Often 'washes' its food in water before eating." },
+    { name: 'Dog', emoji: '🐶',
+      eat: 'Meat and commercial pet food, though it will eat many things.',
+      sound: 'A bark, growl, or howl.',
+      habitat: 'Lives alongside humans almost everywhere in the world.',
+      legs: '4 legs.',
+      size: 'Varies hugely by breed, from tiny to very large.',
+      covering: 'Fur, in countless colors and textures.',
+      movement: 'Trots, runs, and wags its tail when excited.',
+      funfact: 'Was the first animal domesticated by humans, tens of thousands of years ago.' },
+    { name: 'Cat', emoji: '🐱',
+      eat: 'Meat — a natural hunter, though pet cats mostly eat cat food.',
+      sound: 'A meow or a purr.',
+      habitat: 'Lives alongside humans worldwide, indoors and out.',
+      legs: '4 legs.',
+      size: 'Small.',
+      covering: 'Soft fur in many colors and patterns.',
+      movement: 'Pounces and stalks silently, and can leap great heights for its size.',
+      funfact: 'Spends around 70% of its life asleep.' },
+    { name: 'Horse', emoji: '🐴',
+      eat: 'Grasses, hay, and grains.',
+      sound: 'A neigh or whinny.',
+      habitat: 'Grasslands and farms; now mostly domesticated worldwide.',
+      legs: '4 legs, each ending in a single hoof.',
+      size: 'Large.',
+      covering: 'Short fur with a long mane and tail.',
+      movement: 'Trots, canters, and gallops.',
+      funfact: 'Can sleep both lying down and standing up.' },
+    { name: 'Zebra', emoji: '🦓',
+      eat: 'Grasses.',
+      sound: 'A high-pitched bark or bray.',
+      habitat: 'African savannas and grasslands.',
+      legs: '4 legs, each ending in a single hoof.',
+      size: 'Large.',
+      covering: 'Black-and-white striped fur.',
+      movement: 'Runs in herds; can gallop quickly to escape predators.',
+      funfact: 'No two individuals have exactly the same stripe pattern.' },
+    { name: 'Cow', emoji: '🐮',
+      eat: 'Grass, which it chews as cud after swallowing it once already.',
+      sound: 'A moo.',
+      habitat: 'Farms and pastures worldwide.',
+      legs: '4 legs, each ending in two-toed hooves.',
+      size: 'Large.',
+      covering: 'Short fur, often patchy black-and-white or brown.',
+      movement: 'Walks slowly while grazing in a herd.',
+      funfact: 'Has an extra stomach chamber — four in total — to digest tough grass.' },
+    { name: 'Bison', emoji: '🦬',
+      eat: 'Grasses and shrubs.',
+      sound: 'A deep grunt or bellow.',
+      habitat: 'Grasslands and plains in North America.',
+      legs: '4 legs.',
+      size: 'Huge — the largest land animal in North America.',
+      covering: 'Thick, shaggy brown fur, especially around the head and shoulders.',
+      movement: 'Grazes in herds; can run surprisingly fast despite its bulk.',
+      funfact: 'Once nearly hunted to extinction, but conservation efforts brought it back.' },
+    { name: 'Water Buffalo', emoji: '🐃',
+      eat: 'Grasses and aquatic plants.',
+      sound: 'A low grunt or bellow.',
+      habitat: 'Wetlands, rivers, and rice paddies across Asia.',
+      legs: '4 legs.',
+      size: 'Large.',
+      covering: 'Sparse dark gray or black hair.',
+      movement: 'Wades through mud and water, often wallowing to cool off.',
+      funfact: 'Has been used by farmers for plowing fields for thousands of years.' },
+    { name: 'Pig', emoji: '🐷',
+      eat: 'Almost anything — grains, vegetables, and scraps.',
+      sound: 'An oink or squeal.',
+      habitat: 'Farms worldwide; wild relatives live in forests.',
+      legs: '4 legs, each ending in cloven hooves.',
+      size: 'Medium to large.',
+      covering: 'Coarse, sparse hair on pinkish or dark skin.',
+      movement: 'Trots around and roots in the dirt with its snout.',
+      funfact: 'Considered one of the most intelligent farm animals.' },
+    { name: 'Wild Boar', emoji: '🐗',
+      eat: 'Roots, nuts, insects, and small animals, dug up with its snout.',
+      sound: 'Grunts and squeals.',
+      habitat: 'Forests and woodlands across Europe, Asia, and beyond.',
+      legs: '4 legs.',
+      size: 'Medium.',
+      covering: 'Coarse, bristly dark fur.',
+      movement: 'Trots and roots through soil and leaf litter.',
+      funfact: 'The ancestor of all domestic pigs.' },
+    { name: 'Sheep', emoji: '🐑',
+      eat: 'Grasses and other plants.',
+      sound: "A bleat, or 'baa'.",
+      habitat: 'Farms and grassy hillsides worldwide.',
+      legs: '4 legs.',
+      size: 'Medium.',
+      covering: 'Thick, woolly fleece.',
+      movement: 'Grazes and moves in a tight flock.',
+      funfact: 'Its wool keeps growing all its life and must be sheared.' },
+    { name: 'Goat', emoji: '🐐',
+      eat: 'Grasses, leaves, and almost any plant it can reach.',
+      sound: 'A bleat that can sound almost like a yell.',
+      habitat: 'Farms and rocky hillsides worldwide.',
+      legs: '4 legs.',
+      size: 'Small to medium.',
+      covering: 'Coarse hair, sometimes with a beard on males.',
+      movement: 'Climbs steep, rocky terrain with ease.',
+      funfact: 'Its rectangular pupils give it a wide field of view to watch for predators.' },
+    { name: 'Ram', emoji: '🐏',
+      eat: 'Grasses and other plants.',
+      sound: 'A deep bleat.',
+      habitat: 'Farms and grassy hillsides worldwide.',
+      legs: '4 legs.',
+      size: 'Medium.',
+      covering: 'Thick wool, with large curved horns.',
+      movement: 'Grazes with the flock; charges head-first when fighting rivals.',
+      funfact: 'Males headbutt each other at high speed to compete for dominance.' },
+    { name: 'Llama', emoji: '🦙',
+      eat: 'Grasses and other plants.',
+      sound: 'Hums, and sometimes spits when annoyed.',
+      habitat: 'Mountain grasslands of South America.',
+      legs: '4 legs.',
+      size: 'Large.',
+      covering: 'Long, thick wool.',
+      movement: 'Walks steadily, sure-footed on steep mountain terrain.',
+      funfact: 'Has been used for thousands of years to carry loads across the Andes.' },
+    { name: 'Woolly Mammoth', emoji: '🦣',
+      eat: 'Grasses and plants, dug up from beneath snow.',
+      sound: 'Likely trumpeting calls, similar to modern elephants.',
+      habitat: 'Cold tundra and grasslands, now extinct.',
+      legs: '4 legs, thick and sturdy.',
+      size: 'Huge.',
+      covering: 'Long, shaggy fur to survive icy temperatures.',
+      movement: 'Walked slowly on four legs across frozen ground.',
+      funfact: 'Died out around 4,000 years ago, but frozen remains have been found in ice.' },
+    { name: 'Rhinoceros', emoji: '🦏',
+      eat: 'Grasses and leaves.',
+      sound: 'Grunts, snorts, and occasional roars.',
+      habitat: 'Grasslands and savannas in Africa and Asia.',
+      legs: '4 legs.',
+      size: 'Huge.',
+      covering: 'Thick, armor-like gray skin.',
+      movement: 'Walks slowly but can charge surprisingly fast when threatened.',
+      funfact: 'Its horn is made of keratin, the same material as human fingernails.' },
+    { name: 'Hippopotamus', emoji: '🦛',
+      eat: 'Grasses, grazed mostly at night.',
+      sound: 'A deep grunt or honking bellow.',
+      habitat: 'Rivers and lakes in Africa.',
+      legs: '4 short, stumpy legs.',
+      size: 'Huge.',
+      covering: 'Thick, hairless gray-brown skin.',
+      movement: 'Spends most of the day submerged in water, walking along riverbeds.',
+      funfact: "Despite living in water, it can't actually swim — it walks or bounces along the bottom." },
+    { name: 'Mouse', emoji: '🐭',
+      eat: 'Seeds, grains, and scraps.',
+      sound: 'Tiny squeaks.',
+      habitat: 'Fields, forests, and buildings almost everywhere.',
+      legs: '4 legs and a long thin tail.',
+      size: 'Tiny.',
+      covering: 'Soft short fur.',
+      movement: 'Scurries quickly and squeezes into small gaps.',
+      funfact: 'Can squeeze through a gap as small as a dime.' },
+    { name: 'Rat', emoji: '🐀',
+      eat: 'Almost anything, including scraps, grains, and insects.',
+      sound: 'Squeaks and chattering teeth.',
+      habitat: 'Cities, sewers, farms, and wild areas worldwide.',
+      legs: '4 legs and a long scaly tail.',
+      size: 'Small.',
+      covering: 'Coarse short fur.',
+      movement: 'Scurries and climbs; an excellent swimmer too.',
+      funfact: 'Extremely intelligent and can be trained to complete complex tasks.' },
+    { name: 'Hamster', emoji: '🐹',
+      eat: 'Seeds, grains, and vegetables.',
+      sound: 'Mostly quiet; occasional squeaks.',
+      habitat: 'Burrows in dry grasslands, and popular as a pet worldwide.',
+      legs: '4 legs.',
+      size: 'Tiny.',
+      covering: 'Soft, dense fur.',
+      movement: 'Scurries and digs burrows.',
+      funfact: 'Has stretchy cheek pouches for carrying food back to its burrow.' },
+    { name: 'Rabbit', emoji: '🐰',
+      eat: 'Grasses, clover, and vegetables.',
+      sound: 'Usually quiet; thumps its foot to warn others.',
+      habitat: 'Meadows, forests, and gardens worldwide.',
+      legs: '4 legs, with strong, long back legs.',
+      size: 'Small.',
+      covering: 'Soft fur.',
+      movement: 'Hops, and can sprint quickly in a zigzag to escape predators.',
+      funfact: 'Its teeth never stop growing, so it must constantly gnaw to wear them down.' },
+    { name: 'Squirrel', emoji: '🐿️',
+      eat: 'Nuts, seeds, and fruit.',
+      sound: 'Chattering barks and chirps.',
+      habitat: 'Forests, parks, and cities worldwide.',
+      legs: '4 legs and a bushy tail.',
+      size: 'Small.',
+      covering: 'Soft fur, often gray, red, or brown.',
+      movement: 'Leaps between branches and scurries up and down trees.',
+      funfact: 'Buries thousands of nuts each year and remembers most of the hiding spots.' },
+    { name: 'Beaver', emoji: '🦫',
+      eat: 'Bark, twigs, and leaves.',
+      sound: 'Grunts, and a loud tail-slap on water as a warning.',
+      habitat: 'Rivers, streams, and ponds across North America and Europe.',
+      legs: '4 legs with webbed hind feet.',
+      size: 'Medium to large.',
+      covering: 'Thick, waterproof brown fur.',
+      movement: 'Swims well and waddles on land.',
+      funfact: 'Builds dams out of sticks and mud, sometimes reshaping entire landscapes.' },
+    { name: 'Badger', emoji: '🦡',
+      eat: 'Worms, insects, small animals, and roots.',
+      sound: 'Growls, snarls, and hisses.',
+      habitat: 'Burrows in woodlands and grasslands across the Northern Hemisphere.',
+      legs: '4 legs with strong digging claws.',
+      size: 'Medium.',
+      covering: 'Coarse gray fur with a black-and-white striped face.',
+      movement: 'Digs extensive underground tunnel systems called setts.',
+      funfact: 'Can dig a burrow system so extensive it\'s used by generations of badgers.' },
+    { name: 'Meerkat', emoji: '🦡',
+      eat: 'Insects, small reptiles, and eggs.',
+      sound: 'Chirps, barks, and a shrill alarm call.',
+      habitat: 'Deserts and dry grasslands in southern Africa.',
+      legs: '4 legs.',
+      size: 'Tiny.',
+      covering: 'Short tan-brown fur with dark patches around the eyes.',
+      movement: 'Stands upright on its hind legs to watch for danger.',
+      funfact: 'Lives in tight-knit groups that take turns standing guard as lookouts.' },
+    { name: 'Grizzly Bear', emoji: '🐻',
+      eat: 'Fish, berries, roots, and small animals.',
+      sound: 'Growls, roars, and huffs.',
+      habitat: 'Forests and mountains in North America.',
+      legs: '4 legs.',
+      size: 'Huge.',
+      covering: 'Thick brown fur, sometimes with silver-tipped hairs.',
+      movement: 'Walks on all fours, but can stand on its hind legs to look around.',
+      funfact: 'Can run surprisingly fast despite its huge size.' },
+    { name: 'Polar Bear', emoji: '🐻‍❄️',
+      eat: 'Mostly seals, hunted at holes in the ice.',
+      sound: 'Growls, roars, and chuffing sounds.',
+      habitat: 'Arctic sea ice and coastlines.',
+      legs: '4 legs with large, furry paws.',
+      size: 'Huge — the largest land carnivore.',
+      covering: 'Thick white fur over black skin.',
+      movement: 'Walks across ice and snow, and swims strongly between ice floes.',
+      funfact: 'Its fur looks white but is actually clear, and its skin underneath is black.' },
+    { name: 'Panda', emoji: '🐼',
+      eat: 'Almost entirely bamboo.',
+      sound: 'Bleats, honks, and growls.',
+      habitat: 'Bamboo forests in the mountains of China.',
+      legs: '4 legs.',
+      size: 'Large.',
+      covering: 'Thick black-and-white fur.',
+      movement: 'Ambles slowly, though it can climb trees well.',
+      funfact: 'Spends up to 12 hours a day eating to get enough nutrition from bamboo.' },
+    { name: 'Sloth', emoji: '🦥',
+      eat: 'Leaves, buds, and fruit.',
+      sound: 'Rarely makes sounds; occasional soft bleats.',
+      habitat: 'Rainforest canopies in Central and South America.',
+      legs: '4 limbs with long curved claws.',
+      size: 'Small to medium.',
+      covering: 'Shaggy fur, sometimes tinted green from algae growth.',
+      movement: 'Moves extremely slowly, almost always upside down in trees.',
+      funfact: 'Moves so slowly that algae grows on its fur.' },
+    { name: 'Otter', emoji: '🦦',
+      eat: 'Fish, crabs, and other small aquatic animals.',
+      sound: 'Chirps, whistles, and playful squeals.',
+      habitat: 'Rivers, lakes, and coastlines worldwide.',
+      legs: '4 legs with webbed feet.',
+      size: 'Small to medium.',
+      covering: 'Thick, water-repellent fur.',
+      movement: 'Swims playfully, often floating on its back.',
+      funfact: "Sometimes holds hands with other members of its group while sleeping so they don't drift apart." },
+    { name: 'Skunk', emoji: '🦨',
+      eat: 'Insects, small animals, and plants.',
+      sound: 'Hisses, stamps its feet, and screeches when threatened.',
+      habitat: 'Woodlands, grasslands, and suburbs across the Americas.',
+      legs: '4 legs.',
+      size: 'Small.',
+      covering: 'Black fur with a white stripe down the back.',
+      movement: 'Waddles slowly, but can spray suddenly when scared.',
+      funfact: 'Can spray a foul-smelling liquid several feet as a defense.' },
+    { name: 'Deer', emoji: '🦌',
+      eat: 'Grasses, leaves, and twigs.',
+      sound: 'Grunts, bleats, and snorts.',
+      habitat: 'Forests and grasslands almost worldwide.',
+      legs: '4 slender legs.',
+      size: 'Medium.',
+      covering: 'Short brown fur; males often grow antlers.',
+      movement: 'Runs and leaps gracefully, and can bound over obstacles.',
+      funfact: 'Males shed and regrow a full set of antlers every year.' },
+    { name: 'Moose', emoji: '🦌',
+      eat: 'Leaves, bark, and aquatic plants.',
+      sound: 'Grunts and deep bellows.',
+      habitat: 'Forests and wetlands in cold northern regions.',
+      legs: '4 long legs.',
+      size: 'Huge — the largest member of the deer family.',
+      covering: 'Dark brown fur.',
+      movement: 'Wades into lakes to feed and can run surprisingly fast.',
+      funfact: 'Males grow wide, flat antlers that can span several feet.' },
+    { name: 'Walrus', emoji: '🦭',
+      eat: 'Clams and other shellfish, dug up from the seafloor.',
+      sound: 'Loud bellows, roars, and bell-like sounds.',
+      habitat: 'Arctic coastlines and sea ice.',
+      legs: 'No legs — flippers instead.',
+      size: 'Huge.',
+      covering: 'Thick, wrinkly skin with sparse whiskers.',
+      movement: 'Awkward on land, but a powerful swimmer in water.',
+      funfact: 'Both males and females grow long tusks used for hauling themselves onto ice.' },
+    { name: 'Seal', emoji: '🦭',
+      eat: 'Fish and squid.',
+      sound: 'Barks, grunts, and growls.',
+      habitat: 'Coastlines and oceans worldwide.',
+      legs: 'No legs — flippers instead.',
+      size: 'Medium to large.',
+      covering: 'Smooth, sleek fur.',
+      movement: 'Clumsy on land, but glides gracefully through water.',
+      funfact: 'Can hold its breath for well over an hour while diving for food.' },
+    { name: 'Turkey', emoji: '🦃',
+      eat: 'Seeds, nuts, and insects.',
+      sound: 'A gobble.',
+      habitat: 'Forests and fields in North America.',
+      legs: '2 legs.',
+      size: 'Medium to large.',
+      covering: 'Dark feathers with a bare, colorful head.',
+      movement: 'Walks and can fly short distances despite its size.',
+      funfact: 'Can change the color of its head depending on its mood.' },
+    { name: 'Chicken', emoji: '🐔',
+      eat: 'Seeds, insects, and grain.',
+      sound: 'A cluck, or a crow from the male.',
+      habitat: 'Farms and backyards worldwide.',
+      legs: '2 legs.',
+      size: 'Small to medium.',
+      covering: 'Feathers in many colors and patterns.',
+      movement: 'Walks and scratches at the ground; can fly only short distances.',
+      funfact: 'Can recognize and remember over a hundred different faces, human or animal.' },
+    { name: 'Duck', emoji: '🦆',
+      eat: 'Aquatic plants, insects, and small fish.',
+      sound: 'A quack.',
+      habitat: 'Ponds, lakes, and wetlands worldwide.',
+      legs: '2 legs with webbed feet.',
+      size: 'Small to medium.',
+      covering: 'Waterproof feathers.',
+      movement: 'Waddles on land and swims smoothly on water.',
+      funfact: 'Its feathers stay dry thanks to natural oils it spreads while preening.' },
+    { name: 'Swan', emoji: '🦢',
+      eat: 'Aquatic plants and small water creatures.',
+      sound: 'Trumpeting or hissing sounds.',
+      habitat: 'Lakes, rivers, and ponds worldwide.',
+      legs: '2 legs with webbed feet.',
+      size: 'Large.',
+      covering: 'Pure white or black feathers, depending on species.',
+      movement: 'Glides elegantly across water, and flies with slow, powerful wingbeats.',
+      funfact: 'Often mates for life with the same partner.' },
+    { name: 'Pigeon', emoji: '🕊️',
+      eat: 'Seeds and scraps.',
+      sound: 'A soft cooing.',
+      habitat: 'Cities and cliffs worldwide.',
+      legs: '2 legs.',
+      size: 'Small.',
+      covering: 'Gray feathers, often with an iridescent neck.',
+      movement: 'Flies swiftly and bobs its head while walking.',
+      funfact: 'Can find its way home from hundreds of miles away.' },
+    { name: 'Flamingo', emoji: '🦩',
+      eat: 'Small shrimp and algae, filtered from the water.',
+      sound: 'Honks and grunts, similar to a goose.',
+      habitat: 'Shallow lakes and lagoons in warm regions.',
+      legs: '2 very long, thin legs.',
+      size: 'Medium to large.',
+      covering: 'Bright pink feathers.',
+      movement: 'Wades through water and often stands on one leg.',
+      funfact: 'Its pink color comes from pigments in the shrimp and algae it eats.' },
+    { name: 'Eagle', emoji: '🦅',
+      eat: 'Fish and small mammals, caught with sharp talons.',
+      sound: 'A high, thin scream or shrill whistle.',
+      habitat: 'Mountains, forests, and coastlines worldwide.',
+      legs: '2 legs with powerful talons.',
+      size: 'Large.',
+      covering: 'Dark feathers, often with a lighter head.',
+      movement: 'Soars high on wide wings, then dives fast to catch prey.',
+      funfact: "Has eyesight several times sharper than a human's." },
+    { name: 'Vulture', emoji: '🦅',
+      eat: 'Carrion — the remains of dead animals.',
+      sound: 'Hisses and grunts; it lacks a true voice box.',
+      habitat: 'Open plains and mountains worldwide.',
+      legs: '2 legs.',
+      size: 'Large.',
+      covering: 'Dark feathers with a bald head.',
+      movement: 'Soars for hours on rising warm air currents, barely flapping.',
+      funfact: 'Its bald head helps keep it clean while feeding on carcasses.' },
+    { name: 'Parrot', emoji: '🦜',
+      eat: 'Fruit, seeds, and nuts.',
+      sound: 'Squawks, and it can mimic human speech.',
+      habitat: 'Tropical forests worldwide.',
+      legs: '2 legs with strong gripping toes.',
+      size: 'Small to large, depending on species.',
+      covering: 'Brightly colored feathers.',
+      movement: 'Flies well and climbs using its beak and feet.',
+      funfact: 'Some species can learn to copy dozens of human words.' },
+    { name: 'Sparrow', emoji: '🐦',
+      eat: 'Seeds and insects.',
+      sound: 'Cheerful chirps.',
+      habitat: 'Cities, farms, and woodlands worldwide.',
+      legs: '2 legs.',
+      size: 'Tiny.',
+      covering: 'Brown and gray feathers.',
+      movement: 'Flits quickly between perches in short bursts.',
+      funfact: 'One of the most common birds found living alongside humans.' },
+    { name: 'Dodo', emoji: '🦤',
+      eat: 'Fruit that fell from trees.',
+      sound: 'Unknown — it went extinct before recordings existed.',
+      habitat: 'Once lived only on the island of Mauritius.',
+      legs: '2 legs.',
+      size: 'Medium to large.',
+      covering: 'Grayish feathers, with a large hooked beak.',
+      movement: 'Could not fly, and waddled slowly on the ground.',
+      funfact: 'Went extinct in the late 1600s after humans arrived on its island home.' },
+    { name: 'Turtle', emoji: '🐢',
+      eat: 'Plants, insects, or fish, depending on the species.',
+      sound: 'Mostly silent; occasional hisses.',
+      habitat: 'Oceans, ponds, and land, depending on the species.',
+      legs: '4 legs.',
+      size: 'Small to large, depending on species.',
+      covering: 'A hard protective shell.',
+      movement: 'Moves slowly on land, though sea species swim gracefully.',
+      funfact: 'Can pull its head and legs into its shell for protection.' },
+    { name: 'Alligator', emoji: '🐊',
+      eat: 'Fish, birds, and other animals near the water.',
+      sound: 'A deep bellow or hiss.',
+      habitat: 'Freshwater swamps and rivers, mainly in the southeastern US and China.',
+      legs: '4 short legs.',
+      size: 'Large.',
+      covering: 'Thick, armored scales, usually dark gray or black.',
+      movement: "Swims with its tail; ambushes prey from the water.",
+      funfact: 'Has a wider, more rounded snout than its close relative the crocodile.' },
+    { name: 'Komodo Dragon', emoji: '🦎',
+      eat: 'Meat — it can take down prey as large as deer or buffalo.',
+      sound: 'Hisses and low growls.',
+      habitat: 'A few Indonesian islands.',
+      legs: '4 legs.',
+      size: 'Huge — the largest living lizard.',
+      covering: 'Tough, scaly skin.',
+      movement: 'Walks with a slow, deliberate gait but can charge quickly.',
+      funfact: 'Has a venomous bite that weakens its prey over time.' },
+    { name: 'King Cobra', emoji: '🐍',
+      eat: 'Mostly other snakes.',
+      sound: 'A distinctive growling hiss.',
+      habitat: 'Forests across South and Southeast Asia.',
+      legs: 'No legs.',
+      size: 'Large — the longest venomous snake in the world.',
+      covering: 'Smooth scales, olive-green to black.',
+      movement: 'Slithers, and can raise the front third of its body to strike.',
+      funfact: 'Can rear up to nearly human height when threatened.' },
+    { name: 'Rattlesnake', emoji: '🐍',
+      eat: 'Small mammals and birds.',
+      sound: 'A buzzing rattle at the tip of its tail.',
+      habitat: 'Deserts, grasslands, and forests across the Americas.',
+      legs: 'No legs.',
+      size: 'Small to medium.',
+      covering: 'Patterned scales, often brown or gray.',
+      movement: 'Slithers, and coils before striking.',
+      funfact: 'Shakes the rattle on its tail as a warning before it bites.' },
+    { name: 'Whale', emoji: '🐳',
+      eat: 'Krill, small fish, or squid, depending on the species.',
+      sound: 'Deep, haunting songs that can travel for miles underwater.',
+      habitat: 'Oceans worldwide.',
+      legs: 'No legs — flippers and a tail fin.',
+      size: 'Huge — among the largest animals to ever exist.',
+      covering: 'Smooth skin with a thick layer of blubber.',
+      movement: 'Swims by moving its tail up and down, and breathes through a blowhole.',
+      funfact: 'Some species can hold their breath for over an hour.' },
+    { name: 'Orca', emoji: '🐳',
+      eat: 'Fish, seals, and sometimes other whales.',
+      sound: 'Clicks, whistles, and pulsed calls to communicate.',
+      habitat: 'Oceans worldwide, especially colder waters.',
+      legs: 'No legs — flippers and a tail fin.',
+      size: 'Large.',
+      covering: 'Smooth black-and-white skin.',
+      movement: 'Swims in tight-knit family pods, hunting cooperatively.',
+      funfact: "Despite its nickname 'killer whale,' it's actually the largest member of the dolphin family." },
+    { name: 'Salmon', emoji: '🐟',
+      eat: 'Smaller fish, insects, and plankton.',
+      sound: 'Silent.',
+      habitat: 'Rivers and oceans, migrating between the two.',
+      legs: 'No legs — fins.',
+      size: 'Medium.',
+      covering: 'Smooth scales, silvery with a pink tint.',
+      movement: 'Swims strongly, famously leaping upstream against currents.',
+      funfact: 'Returns to the exact stream where it hatched in order to lay its own eggs.' },
+    { name: 'Clownfish', emoji: '🐠',
+      eat: 'Algae, plankton, and small invertebrates.',
+      sound: 'Silent to human ears.',
+      habitat: 'Coral reefs in warm ocean waters.',
+      legs: 'No legs — fins.',
+      size: 'Tiny.',
+      covering: 'Smooth scales in bright orange with white stripes.',
+      movement: 'Darts quickly among the tentacles of sea anemones.',
+      funfact: 'Lives safely among stinging sea anemones, immune to their sting.' },
+    { name: 'Pufferfish', emoji: '🐡',
+      eat: 'Algae, shellfish, and small invertebrates.',
+      sound: 'Silent.',
+      habitat: 'Warm coastal waters worldwide.',
+      legs: 'No legs — fins.',
+      size: 'Small to medium.',
+      covering: 'Spiky skin that can stretch dramatically.',
+      movement: 'Swims slowly, relying on defense rather than speed.',
+      funfact: 'Can inflate itself into a spiky ball to avoid being eaten.' },
+    { name: 'Crab', emoji: '🦀',
+      eat: 'Algae, small fish, and scraps on the seafloor.',
+      sound: 'Silent, though some species make clicking sounds with their claws.',
+      habitat: 'Oceans, beaches, and some freshwater habitats.',
+      legs: '10 legs, including two claws.',
+      size: 'Small to medium.',
+      covering: 'A hard outer shell.',
+      movement: 'Scuttles sideways along the ground.',
+      funfact: 'Must molt its hard shell periodically in order to grow bigger.' },
+    { name: 'Lobster', emoji: '🦞',
+      eat: 'Fish, mollusks, and scraps on the seafloor.',
+      sound: 'Silent, though it can make a rasping sound with its antennae.',
+      habitat: 'Ocean floors worldwide.',
+      legs: '8 walking legs, plus two large claws.',
+      size: 'Medium.',
+      covering: 'A hard outer shell, often greenish-brown until cooked.',
+      movement: 'Crawls along the seafloor and can flick its tail to swim backward quickly.',
+      funfact: 'Can regrow a claw or leg if it loses one.' },
+    { name: 'Shrimp', emoji: '🦐',
+      eat: 'Algae, plankton, and tiny scraps of food.',
+      sound: 'Silent, though some species can snap their claws loudly.',
+      habitat: 'Oceans, rivers, and lakes worldwide.',
+      legs: '10 small legs.',
+      size: 'Tiny.',
+      covering: 'A thin, semi-transparent shell.',
+      movement: 'Swims and darts backward quickly to escape danger.',
+      funfact: 'Its heart is located in its head.' },
+    { name: 'Squid', emoji: '🦑',
+      eat: 'Fish and small crustaceans.',
+      sound: 'Silent.',
+      habitat: 'Oceans worldwide, from shallow water to deep sea.',
+      legs: 'No legs — 10 tentacles.',
+      size: 'Small to enormous, depending on the species.',
+      covering: 'Smooth, soft skin that can change color.',
+      movement: 'Jets through the water by squirting water backward.',
+      funfact: 'Can shoot a cloud of ink to escape from predators.' },
+    { name: 'Snail', emoji: '🐌',
+      eat: 'Leaves, algae, and decaying plants.',
+      sound: 'Silent.',
+      habitat: 'Gardens, forests, and water, depending on the species.',
+      legs: 'No legs — moves on a single muscular foot.',
+      size: 'Tiny to small.',
+      covering: 'A hard spiral shell on its back.',
+      movement: 'Glides slowly on a trail of slime.',
+      funfact: 'Can seal itself inside its shell to survive dry or cold conditions.' },
+    { name: 'Jellyfish', emoji: '🪼',
+      eat: 'Small fish and plankton, caught with stinging tentacles.',
+      sound: 'Silent.',
+      habitat: 'Oceans worldwide.',
+      legs: 'No legs — a soft bell and trailing tentacles.',
+      size: 'Small to large, depending on the species.',
+      covering: 'A soft, gelatinous, transparent body.',
+      movement: 'Pulses its bell-shaped body to drift through the water.',
+      funfact: 'Has no brain, heart, or bones, yet has survived for hundreds of millions of years.' },
+    { name: 'Butterfly', emoji: '🦋',
+      eat: 'Nectar from flowers.',
+      sound: 'Silent.',
+      habitat: 'Gardens, meadows, and forests worldwide.',
+      legs: '6 legs.',
+      size: 'Tiny.',
+      covering: 'Wings covered in colorful powdery scales.',
+      movement: 'Flutters gracefully from flower to flower.',
+      funfact: 'Tastes with sensors on its feet.' },
+    { name: 'Caterpillar', emoji: '🐛',
+      eat: 'Leaves, often a huge amount relative to its size.',
+      sound: 'Silent.',
+      habitat: 'Gardens, forests, and fields worldwide.',
+      legs: 'Several pairs of small legs and stubby prolegs.',
+      size: 'Tiny.',
+      covering: 'A soft segmented body, sometimes covered in spines or hair.',
+      movement: 'Crawls slowly along leaves and stems.',
+      funfact: 'Transforms completely inside a cocoon or chrysalis into a very different-looking adult.' },
+    { name: 'Ant', emoji: '🐜',
+      eat: 'Sugars, other insects, and scraps, depending on the species.',
+      sound: 'Mostly silent, though some species can make clicking sounds.',
+      habitat: 'Almost everywhere on land, worldwide.',
+      legs: '6 legs.',
+      size: 'Tiny.',
+      covering: 'A hard exoskeleton.',
+      movement: 'Marches in organized lines, often carrying loads far heavier than itself.',
+      funfact: 'Can carry objects many times its own body weight.' },
+    { name: 'Beetle', emoji: '🪲',
+      eat: 'Plants, fungi, or other insects, depending on the species.',
+      sound: 'Mostly silent, though some species make clicking or hissing sounds.',
+      habitat: 'Nearly every habitat on land worldwide.',
+      legs: '6 legs.',
+      size: 'Tiny to small.',
+      covering: 'A hard protective outer shell covering its wings.',
+      movement: 'Crawls and can fly by lifting its hard outer wing covers.',
+      funfact: 'Makes up more known species than any other group of animals on Earth.' },
+    { name: 'Ladybug', emoji: '🐞',
+      eat: 'Aphids and other small garden pests.',
+      sound: 'Silent.',
+      habitat: 'Gardens and fields worldwide.',
+      legs: '6 legs.',
+      size: 'Tiny.',
+      covering: 'A hard, rounded shell, usually red with black spots.',
+      movement: 'Crawls slowly and flies short distances.',
+      funfact: 'Its bright colors warn predators that it tastes bad.' },
+    { name: 'Cricket', emoji: '🦗',
+      eat: 'Plants and scraps of other insects.',
+      sound: 'A chirp, made by rubbing its wings together.',
+      habitat: 'Grasslands and gardens worldwide.',
+      legs: '6 legs, with large back legs for jumping.',
+      size: 'Tiny.',
+      covering: 'A hard exoskeleton.',
+      movement: 'Hops and can fly short distances.',
+      funfact: 'Chirps faster in warmer weather — some say you can estimate temperature by counting chirps.' },
+    { name: 'Cockroach', emoji: '🪳',
+      eat: 'Almost anything, including scraps and decaying matter.',
+      sound: 'Mostly silent, though some species can hiss.',
+      habitat: 'Almost everywhere, especially warm, damp places.',
+      legs: '6 legs.',
+      size: 'Small.',
+      covering: 'A hard, flat, shiny exoskeleton.',
+      movement: 'Scurries extremely quickly and can squeeze into tiny cracks.',
+      funfact: 'Can survive for weeks without its head before it eventually dies of thirst.' },
+    { name: 'Scorpion', emoji: '🦂',
+      eat: 'Insects and small animals, caught with its pincers.',
+      sound: 'Silent.',
+      habitat: 'Deserts and warm regions worldwide.',
+      legs: '8 legs, plus pincers and a curved tail.',
+      size: 'Small.',
+      covering: 'A hard exoskeleton.',
+      movement: 'Scurries low to the ground and strikes quickly with its tail.',
+      funfact: 'Glows under ultraviolet light.' },
+  ];
+
+  // --- state ---
+  let secret = null;
+  let askedCount = 0;
+  let askedKeys = new Set();
+  let guessesMade = 0;
+  let gameOver = false;
+
+  // --- elements ---
+  const questionsGrid = document.getElementById('questionsGrid');
+  const remainingBadge = document.getElementById('remainingBadge');
+  const log = document.getElementById('log');
+  const guessForm = document.getElementById('guessForm');
+  const guessInput = document.getElementById('guessInput');
+  const guessHeading = document.getElementById('guessHeading');
+  const feedback = document.getElementById('feedback');
+  const guessCard = document.getElementById('guessCard');
+  const resultCard = document.getElementById('resultCard');
+  const resultEmoji = document.getElementById('resultEmoji');
+  const resultTitle = document.getElementById('resultTitle');
+  const resultDetail = document.getElementById('resultDetail');
+  const resultStars = document.getElementById('resultStars');
+  const newGameBtn = document.getElementById('newGameBtn');
+  const playAgainBtn = document.getElementById('playAgainBtn');
+
+  function levenshtein(a, b) {
+    const m = a.length, n = b.length;
+    const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+    for (let i = 0; i <= m; i++) dp[i][0] = i;
+    for (let j = 0; j <= n; j++) dp[0][j] = j;
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+        dp[i][j] = Math.min(
+          dp[i - 1][j] + 1,
+          dp[i][j - 1] + 1,
+          dp[i - 1][j - 1] + cost
+        );
+      }
+    }
+    return dp[m][n];
+  }
+
+  function normalize(s) {
+    return s.toLowerCase().trim().replace(/[^a-z]/g, '');
+  }
+
+  function isCorrectGuess(guess, name) {
+    const g = normalize(guess);
+    const n = normalize(name);
+    if (!g) return false;
+    if (g === n) return true;
+    if (g.endsWith('s') && g.slice(0, -1) === n) return true;
+    const threshold = n.length <= 4 ? 1 : n.length <= 7 ? 2 : 3;
+    return levenshtein(g, n) <= threshold;
+  }
+
+  function renderQuestions() {
+    questionsGrid.innerHTML = '';
+    QUESTIONS.forEach(q => {
+      const btn = document.createElement('button');
+      btn.className = 'q-btn';
+      btn.textContent = q.label;
+      const asked = askedKeys.has(q.key);
+      btn.disabled = asked || gameOver || askedCount >= MAX_QUESTIONS;
+      if (asked) btn.classList.add('asked');
+      btn.addEventListener('click', () => askQuestion(q));
+      questionsGrid.appendChild(btn);
+    });
+  }
+
+  function renderLog() {
+    if (askedKeys.size === 0) {
+      log.innerHTML = '<div class="log-empty">No questions asked yet — pick one above to get your first clue.</div>';
+      return;
+    }
+    log.innerHTML = '';
+    QUESTIONS.filter(q => askedKeys.has(q.key)).forEach(q => {
+      const item = document.createElement('div');
+      item.className = 'log-item';
+      item.innerHTML = `<div class="q">${q.label}</div><div class="a">${secret[q.key]}</div>`;
+      log.appendChild(item);
+    });
+  }
+
+  function updateBadge() {
+    const left = MAX_QUESTIONS - askedCount;
+    remainingBadge.textContent = left > 0
+      ? `${left} question${left === 1 ? '' : 's'} left`
+      : 'No questions left';
+  }
+
+  function guessesAvailable() {
+    return askedCount - guessesMade;
+  }
+
+  function updateGuessMode() {
+    if (gameOver) return;
+    const available = guessesAvailable();
+    const locked = available <= 0;
+    const isFinal = !locked && askedCount >= MAX_QUESTIONS && available === 1;
+
+    guessInput.disabled = locked;
+    guessForm.querySelector('button').disabled = locked;
+    guessForm.classList.toggle('final', isFinal);
+
+    if (locked) {
+      guessHeading.textContent = askedCount === 0
+        ? 'Ask a question to unlock your first guess'
+        : 'Ask another question to guess again';
+      guessInput.placeholder = 'Ask a question first…';
+    } else {
+      guessHeading.textContent = isFinal ? 'Final guess!' : 'Make a guess';
+      guessInput.placeholder = 'Type an animal name…';
+    }
+    guessForm.querySelector('button').textContent = isFinal ? 'Final Guess' : 'Guess';
+  }
+
+  function askQuestion(q) {
+    if (gameOver || askedKeys.has(q.key) || askedCount >= MAX_QUESTIONS) return;
+    askedKeys.add(q.key);
+    askedCount++;
+    feedback.textContent = '';
+    feedback.className = 'feedback';
+    renderQuestions();
+    renderLog();
+    updateBadge();
+    updateGuessMode();
+  }
+
+  function starsFor(n) {
+    const total = MAX_QUESTIONS + 1;
+    const earned = Math.max(1, total - n);
+    return '★'.repeat(earned) + '☆'.repeat(total - earned);
+  }
+
+  function endGame(won) {
+    gameOver = true;
+    renderQuestions();
+    guessCard.classList.add('hidden');
+    resultCard.classList.remove('hidden');
+    resultEmoji.textContent = secret.emoji;
+    if (won) {
+      resultTitle.textContent = `You got it! It was the ${secret.name}.`;
+      resultDetail.textContent = `Solved in ${askedCount} question${askedCount === 1 ? '' : 's'}.`;
+      resultStars.textContent = starsFor(askedCount);
+    } else {
+      resultTitle.textContent = `Out of guesses! It was the ${secret.name}.`;
+      resultDetail.textContent = 'Better luck next time.';
+      resultStars.textContent = '';
+    }
+  }
+
+  guessForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (gameOver || guessesAvailable() <= 0) return;
+    const guess = guessInput.value;
+    if (!guess.trim()) return;
+
+    guessesMade++;
+    const noGuessesLeft = askedCount >= MAX_QUESTIONS && guessesAvailable() <= 0;
+    const correct = isCorrectGuess(guess, secret.name);
+
+    if (correct) {
+      endGame(true);
+      return;
+    }
+
+    if (noGuessesLeft) {
+      endGame(false);
+      return;
+    }
+
+    feedback.textContent = `Not quite — "${guess.trim()}" isn't it. Ask another question or guess again.`;
+    feedback.className = 'feedback bad';
+    guessInput.value = '';
+    updateGuessMode();
+    guessInput.focus();
+  });
+
+  function newGame() {
+    secret = ANIMALS[Math.floor(Math.random() * ANIMALS.length)];
+    askedCount = 0;
+    askedKeys = new Set();
+    guessesMade = 0;
+    gameOver = false;
+    feedback.textContent = '';
+    feedback.className = 'feedback';
+    guessInput.value = '';
+    guessCard.classList.remove('hidden');
+    resultCard.classList.add('hidden');
+    renderQuestions();
+    renderLog();
+    updateBadge();
+    updateGuessMode();
+  }
+
+  newGameBtn.addEventListener('click', newGame);
+  playAgainBtn.addEventListener('click', newGame);
+
+  newGame();
+</script>
+</body>
+</html>
